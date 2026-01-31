@@ -45,6 +45,16 @@ initDb();
 
 const app = express();
 
+// Request logging (path only, no query string to avoid logging tokens)
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    console.log(`${req.method} ${req.path} ${res.statusCode} ${ms}ms`);
+  });
+  next();
+});
+
 app.use(express.json());
 app.use(
   session({
