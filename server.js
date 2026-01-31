@@ -205,8 +205,13 @@ app.post('/api/admin/upload', requireAuth, upload.array('images', config.maxUplo
 
       const exif = await extractExif(file.buffer);
 
-      const meta = await sharp(file.buffer).metadata();
+      // failOnError: false allows some malformed JPEGs (e.g. invalid SOS) to be processed
+      const inputOpts = { failOnError: false };
+      const meta = await sharp(file.buffer, inputOpts).metadata();
       const { width, height } = meta;
+      if (width == null || height == null) {
+        throw new Error('Could not read image dimensions');
+      }
       let w = width;
       let h = height;
 
@@ -220,7 +225,7 @@ app.post('/api/admin/upload', requireAuth, upload.array('images', config.maxUplo
         }
       }
 
-      let pipeline = sharp(file.buffer).resize(w, h, { fit: 'inside' });
+      let pipeline = sharp(file.buffer, inputOpts).resize(w, h, { fit: 'inside' });
       if (ext === '.png') pipeline = pipeline.png();
       else if (ext === '.webp') pipeline = pipeline.webp({ quality: config.webpQuality });
       else pipeline = pipeline.jpeg({ quality: config.jpegQuality });
