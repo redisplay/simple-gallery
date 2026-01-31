@@ -207,7 +207,9 @@ app.post('/api/admin/upload', requireAuth, upload.array('images', config.maxUplo
 
       // failOnError: false allows some malformed JPEGs (e.g. invalid SOS) to be processed
       const inputOpts = { failOnError: false };
-      const meta = await sharp(file.buffer, inputOpts).metadata();
+      // Apply EXIF orientation so metadata and output have correct dimensions/rotation
+      const rotated = sharp(file.buffer, inputOpts).rotate();
+      const meta = await rotated.metadata();
       const { width, height } = meta;
       if (width == null || height == null) {
         throw new Error('Could not read image dimensions');
@@ -225,7 +227,7 @@ app.post('/api/admin/upload', requireAuth, upload.array('images', config.maxUplo
         }
       }
 
-      let pipeline = sharp(file.buffer, inputOpts).resize(w, h, { fit: 'inside' });
+      let pipeline = sharp(file.buffer, inputOpts).rotate().resize(w, h, { fit: 'inside' });
       if (ext === '.png') pipeline = pipeline.png();
       else if (ext === '.webp') pipeline = pipeline.webp({ quality: config.webpQuality });
       else pipeline = pipeline.jpeg({ quality: config.jpegQuality });
