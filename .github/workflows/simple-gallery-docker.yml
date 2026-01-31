@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}-simple-gallery
+  IMAGE_NAME: simple-gallery
 
 jobs:
   build-and-push:
