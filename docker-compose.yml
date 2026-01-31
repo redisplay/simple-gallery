@@ -1,0 +1,11 @@
+services:
+  redisplay-simple-gallery:
+    build: .
+    ports:
+      - "3456:3456"
+    environment:
+      - RD_SIMPLE_GALLERY_PORT=3456
+      - RD_SIMPLE_GALLERY_PASSWORD=${RD_SIMPLE_GALLERY_PASSWORD:-changeme}
+      - RD_SIMPLE_GALLERY_DATA_DIR=/data
+    volumes:
+      - .data/:/data

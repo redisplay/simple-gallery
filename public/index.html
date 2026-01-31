@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gallery Admin</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 1rem; }
+    h1 { margin-top: 0; }
+    .login { max-width: 300px; }
+    .login form { margin: 0; }
+    .login input { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; }
+    .login button { padding: 0.5rem 1rem; }
+    .nav { margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center; }
+    .nav a, .nav button { padding: 0.4rem 0.8rem; text-decoration: none; background: #eee; color: #333; border: none; cursor: pointer; border-radius: 4px; font-size: 0.9rem; }
+    .nav a:hover, .nav button:hover { background: #ddd; }
+    .section { margin-bottom: 2rem; }
+    .section h2 { margin-top: 0; font-size: 1.1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+    .card { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; background: #fafafa; position: relative; }
+    .card-check { position: absolute; top: 0.25rem; left: 0.25rem; z-index: 1; margin: 0; }
+    .card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .card .info { padding: 0.4rem; font-size: 0.8rem; }
+    .card .info .row { display: flex; justify-content: space-between; align-items: center; }
+    .card .info .desc { font-size: 0.7rem; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.2rem; }
+    .card .info .tags { font-size: 0.65rem; color: #888; margin-top: 0.2rem; }
+    .card .info .meta-line { font-size: 0.65rem; color: #888; margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tag-filter { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.75rem; align-items: center; }
+    .tag-filter .tag { padding: 0.2rem 0.5rem; background: #eee; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    .tag-filter .tag:hover { background: #ddd; }
+    .tag-filter .tag.active { background: #4a9; color: #fff; }
+    .pagination { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
+    .card button { padding: 0.2rem 0.5rem; font-size: 0.75rem; cursor: pointer; color: #c00; background: none; border: 1px solid #c00; border-radius: 4px; }
+    .card button:hover { background: #c00; color: #fff; }
+    .upload-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; }
+    .upload-zone:hover, .upload-zone.dragover { border-color: #666; background: #f5f5f5; }
+    .upload-zone input { display: none; }
+    .upload-queue { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+    .upload-item { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; background: #fafafa; position: relative; }
+    .upload-item .preview { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #eee; }
+    .upload-item .meta { padding: 0.35rem; font-size: 0.7rem; }
+    .upload-item .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .upload-item .progress-wrap { height: 4px; background: #eee; margin-top: 0.25rem; border-radius: 2px; overflow: hidden; }
+    .upload-item .progress-bar { height: 100%; background: #4a9; transition: width 0.15s; }
+    .upload-item .status { font-size: 0.65rem; color: #666; margin-top: 0.15rem; }
+    .upload-item.done .progress-bar { background: #4a9; }
+    .upload-item.error .progress-bar { background: #c44; }
+    .settings label { display: block; margin-bottom: 0.25rem; }
+    .settings input { padding: 0.4rem; width: 120px; }
+    .settings button { margin-top: 0.5rem; padding: 0.4rem 0.8rem; }
+    .token-list { font-family: monospace; font-size: 0.85rem; }
+    .token-list { list-style: none; padding: 0; }
+    .token-list li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+    .token-list code { background: #eee; padding: 0.2rem 0.4rem; border-radius: 4px; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .api-url { font-family: monospace; font-size: 0.85rem; background: #f0f0f0; padding: 0.5rem; border-radius: 4px; word-break: break-all; margin-top: 0.5rem; }
+    .error { color: #c00; }
+    .hidden { display: none; }
+    .card { cursor: pointer; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+    .modal-overlay.hidden { display: none; }
+    .pictures-toolbar { margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+    .pictures-toolbar.hidden { display: none; }
+    .modal { background: #fff; border-radius: 8px; max-width: 90vw; max-height: 90vh; overflow: auto; }
+    .modal img { display: block; max-width: 100%; max-height: 70vh; object-fit: contain; }
+    .modal .content { padding: 1rem; }
+    .modal label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; }
+    .modal textarea { width: 100%; min-height: 80px; padding: 0.5rem; font-family: inherit; resize: vertical; }
+    .modal .actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div id="login" class="login">
+    <h1>Gallery Admin</h1>
+    <form onsubmit="login(); return false;">
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+      <button type="submit">Login</button>
+    </form>
+    <p id="loginError" class="error hidden"></p>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="nav">
+      <a href="#" onclick="showSection('pictures'); return false;">Pictures</a>
+      <a href="#" onclick="showSection('upload'); return false;">Upload</a>
+      <a href="#" onclick="showSection('settings'); return false;">Settings</a>
+      <a href="#" onclick="showSection('api'); return false;">API</a>
+      <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="section-pictures" class="section">
+      <h2>Pictures</h2>
+      <div id="tagFilter" class="tag-filter"></div>
+      <div id="pictureListBar" class="pictures-toolbar hidden">
+        <button onclick="deleteSelected()">Delete selected</button>
+        <button onclick="toggleSelectAll()">Select all</button>
+        <span id="selectedCount"></span>
+      </div>
+      <div id="pictureList" class="grid"></div>
+      <div id="pagination" class="pagination hidden"></div>
+    </div>
+
+    <div id="section-upload" class="section hidden">
+      <h2>Bulk Upload</h2>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <p>Drop images or click to select</p>
+      </div>
+      <div id="uploadQueue" class="upload-queue"></div>
+      <p id="uploadQueueActions" class="hidden" style="margin-top: 0.5rem;">
+        <button onclick="document.getElementById('uploadQueue').innerHTML=''; this.parentElement.classList.add('hidden')">Clear queue</button>
+      </p>
+    </div>
+
+    <div id="section-settings" class="section hidden">
+      <h2>Settings</h2>
+      <label>Max resolution (px): <input type="number" id="maxRes" min="100" max="10000" value="1920"></label>
+      <button onclick="saveSettings()">Save</button>
+
+      <h3 style="margin-top: 1.5rem;">Tokens</h3>
+      <p>Issue tokens to grant API access. Each token has its own round-robin index.</p>
+      <button onclick="issueToken()">Issue new token</button>
+      <div id="newToken" class="api-url hidden" style="margin-top: 0.5rem;"></div>
+      <p style="margin-top: 1rem;"><strong>Active tokens:</strong></p>
+      <ul id="tokenList" class="token-list"></ul>
+    </div>
+
+    <div id="detailModal" class="modal-overlay hidden" onclick="if(event.target===this) closeDetail()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <img id="detailImg" src="" alt="">
+        <div class="content">
+          <label>Description</label>
+          <textarea id="detailDesc" placeholder="Add a description..."></textarea>
+          <label style="margin-top: 0.75rem;">Tags (comma-separated, e.g. vacation, 2024)</label>
+          <input type="text" id="detailTags" placeholder="tag1, tag2" style="width: 100%; padding: 0.4rem; margin-top: 0.25rem;">
+          <label style="margin-top: 0.75rem;">Date (YYYY-MM-DD)</label>
+          <input type="text" id="detailDate" placeholder="2024-01-15" style="width: 100%; padding: 0.4rem; margin-top: 0.25rem;">
+          <label style="margin-top: 0.75rem;">Location (lat,lon or place name)</label>
+          <input type="text" id="detailLocation" placeholder="52.52, 13.40" style="width: 100%; padding: 0.4rem; margin-top: 0.25rem;">
+          <div class="actions">
+            <button onclick="saveDescription()">Save</button>
+            <button onclick="closeDetail()">Close</button>
+            <button onclick="deleteFromDetail()" style="color: #c00; border-color: #c00;">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="section-api" class="section hidden">
+      <h2>Token-based API</h2>
+      <p>Use an issued token to fetch photos. Each token has its own round-robin index.</p>
+      <p><strong>Next photo (round-robin):</strong></p>
+      <div class="api-url" id="apiNext"></div>
+      <p><strong>Random photo:</strong></p>
+      <div class="api-url" id="apiRandom"></div>
+      <p>Issue tokens in Settings to grant API access.</p>
+    </div>
+  </div>
+
+  <script>
+    // Hardcoded: API base path, pagination limit, upload concurrency, max resolution range
+    const API = '/api';
+    const PAGINATION_LIMIT = 24;
+    const UPLOAD_CONCURRENCY = 3;
+    const MAX_RES_MIN = 100;
+    const MAX_RES_MAX = 10000;
+    const MAX_RES_DEFAULT = 1920;
+
+    async function checkAuth() {
+      const r = await fetch(API + '/check');
+      const d = await r.json();
+      if (d.authenticated) {
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        loadPictures();
+        loadSettings();
+        updateApiUrls();
+      }
+    }
+
+    async function login() {
+      const pw = document.getElementById('password').value;
+      const err = document.getElementById('loginError');
+      const r = await fetch(API + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+        credentials: 'include'
+      });
+      const d = await r.json();
+      if (r.ok) {
+        err.classList.add('hidden');
+        checkAuth();
+      } else {
+        err.textContent = d.error || 'Login failed';
+        err.classList.remove('hidden');
+      }
+    }
+
+    async function logout() {
+      await fetch(API + '/logout', { method: 'POST', credentials: 'include' });
+      document.getElementById('login').classList.remove('hidden');
+      document.getElementById('app').classList.add('hidden');
+    }
+
+    let currentDetailPic = null;
+    let picturesCache = [];
+    let currentTagFilter = null;
+    let currentPage = 1;
+    let lastCheckIndex = -1;
+    let suppressNextCheckClick = false;
+
+    async function loadPictures(tag, page) {
+      if (tag !== undefined) {
+        currentTagFilter = tag || null;
+        currentPage = 1;
+      }
+      if (page != null) currentPage = page;
+      let url = API + '/admin/pictures?page=' + currentPage + '&limit=' + PAGINATION_LIMIT;
+      if (currentTagFilter) url += '&tag=' + encodeURIComponent(currentTagFilter);
+      const r = await fetch(url, { credentials: 'include' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const pics = Array.isArray(data) ? data : (data.pictures || []);
+      picturesCache = pics;
+      const el = document.getElementById('pictureList');
+      el.innerHTML = pics.map(p => `
+        <div class="card" data-id="${p.id}" onclick="openDetail(${p.id})">
+          <label class="card-check" onclick="event.stopPropagation()">
+            <input type="checkbox" class="pic-check" data-id="${p.id}">
+          </label>
+          <img src="${p.url}" alt="" loading="lazy">
+          <div class="info">
+            <div class="row">
+              <span>#${p.id}</span>
+              <button onclick="event.stopPropagation(); deletePic(${p.id})">Delete</button>
+            </div>
+            ${p.description ? `<div class="desc" title="${escapeHtml(p.description)}">${escapeHtml(p.description)}</div>` : ''}
+            ${(p.tags && p.tags.length) ? `<div class="tags">${p.tags.map(t => escapeHtml(t)).join(', ')}</div>` : ''}
+            ${p.date ? `<div class="meta-line">${escapeHtml(p.date)}</div>` : ''}
+            ${p.location ? `<div class="meta-line" title="${escapeHtml(p.location)}">${escapeHtml(p.location)}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+      lastCheckIndex = -1;
+      updateSelectedCount();
+      loadTagFilter();
+      renderPagination(
+        Array.isArray(data) ? data.length : data.total,
+        Array.isArray(data) ? 1 : data.pages,
+        Array.isArray(data) ? 1 : data.page
+      );
+    }
+
+    function renderPagination(total, pages, page) {
+      const el = document.getElementById('pagination');
+      total = total ?? 0;
+      pages = pages ?? 1;
+      page = page ?? 1;
+      if (pages <= 1) {
+        el.classList.add('hidden');
+        return;
+      }
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <button ${page <= 1 ? 'disabled' : ''} onclick="loadPictures(undefined, ${page - 1})">Prev</button>
+        <span>Page ${page} / ${pages} (${total} total)</span>
+        <button ${page >= pages ? 'disabled' : ''} onclick="loadPictures(undefined, ${page + 1})">Next</button>
+      `;
+    }
+
+    async function loadTagFilter() {
+      const r = await fetch(API + '/admin/tags', { credentials: 'include' });
+      const tags = await r.json();
+      const el = document.getElementById('tagFilter');
+      const allClass = !currentTagFilter ? 'tag active' : 'tag';
+      el.innerHTML = `<span class="${allClass}" onclick="loadPictures(null)">All</span>` +
+        tags.map(t => {
+          const c = currentTagFilter === t.name ? 'tag active' : 'tag';
+          return `<span class="${c}" data-tag="${escapeHtml(t.name)}" onclick="loadPictures(this.dataset.tag)">${escapeHtml(t.name)} (${t.count})</span>`;
+        }).join('');
+    }
+
+    function updateSelectedCount() {
+      const checked = document.querySelectorAll('.pic-check:checked');
+      const bar = document.getElementById('pictureListBar');
+      const countEl = document.getElementById('selectedCount');
+      if (checked.length > 0) {
+        bar.classList.remove('hidden');
+        countEl.textContent = checked.length + ' selected';
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    function toggleSelectAll() {
+      const checks = document.querySelectorAll('.pic-check');
+      const anyUnchecked = Array.from(checks).some(c => !c.checked);
+      checks.forEach(c => { c.checked = anyUnchecked; });
+      lastCheckIndex = -1;
+      updateSelectedCount();
+    }
+
+    async function deleteSelected() {
+      const ids = Array.from(document.querySelectorAll('.pic-check:checked')).map(c => +c.dataset.id);
+      if (!ids.length || !confirm('Delete ' + ids.length + ' picture(s)?')) return;
+      for (const id of ids) {
+        await fetch(API + '/admin/pictures/' + id, { method: 'DELETE', credentials: 'include' });
+      }
+      loadPictures();
+    }
+
+    async function deleteFromDetail() {
+      if (!currentDetailPic || !confirm('Delete this picture?')) return;
+      const id = currentDetailPic.id;
+      closeDetail();
+      await fetch(API + '/admin/pictures/' + id, { method: 'DELETE', credentials: 'include' });
+      loadPictures();
+    }
+
+    async function openDetail(id) {
+      id = Number(id);
+      const pic = picturesCache.find(p => p.id === id);
+      if (!pic) return;
+      currentDetailPic = { id };
+      document.getElementById('detailImg').src = pic.url;
+      document.getElementById('detailModal').classList.remove('hidden');
+      try {
+        const r = await fetch(API + '/admin/pictures/' + id, { credentials: 'include' });
+        const p = await r.json();
+        document.getElementById('detailDesc').value = p.description || '';
+        document.getElementById('detailTags').value = (p.tags || []).join(', ');
+        document.getElementById('detailDate').value = p.date || '';
+        document.getElementById('detailLocation').value = p.location || '';
+      } catch (_) {
+        document.getElementById('detailDesc').value = pic.description || '';
+        document.getElementById('detailTags').value = (pic.tags || []).join(', ');
+        document.getElementById('detailDate').value = pic.date || '';
+        document.getElementById('detailLocation').value = pic.location || '';
+      }
+    }
+
+    function closeDetail() {
+      document.getElementById('detailModal').classList.add('hidden');
+      document.getElementById('detailDesc').value = '';
+      document.getElementById('detailTags').value = '';
+      document.getElementById('detailDate').value = '';
+      document.getElementById('detailLocation').value = '';
+      currentDetailPic = null;
+    }
+
+    async function saveDescription() {
+      if (!currentDetailPic) return;
+      const id = currentDetailPic.id;
+      const desc = document.getElementById('detailDesc').value;
+      const tagsStr = document.getElementById('detailTags').value;
+      const tags = tagsStr.split(',').map(s => s.trim()).filter(Boolean);
+      const date = document.getElementById('detailDate').value.trim() || null;
+      const location = document.getElementById('detailLocation').value.trim() || null;
+      const r = await fetch(API + '/admin/pictures/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: desc, tags, date, location }),
+        credentials: 'include'
+      });
+      if (!r.ok) return;
+      closeDetail();
+      loadPictures(currentTagFilter);
+    }
+
+    async function deletePic(id) {
+      if (!confirm('Delete this picture?')) return;
+      await fetch(API + '/admin/pictures/' + id, { method: 'DELETE', credentials: 'include' });
+      loadPictures();
+    }
+
+    function showSection(name) {
+      document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+      document.getElementById('section-' + name).classList.remove('hidden');
+      if (name === 'pictures') loadPictures(currentTagFilter, currentPage);
+      if (name === 'settings') loadSettings();
+      if (name === 'api') updateApiUrls();
+    }
+
+    async function loadSettings() {
+      const r = await fetch(API + '/admin/settings', { credentials: 'include' });
+      const d = await r.json();
+      document.getElementById('maxRes').value = d.max_resolution;
+      loadTokens();
+    }
+
+    async function loadTokens() {
+      const r = await fetch(API + '/admin/tokens', { credentials: 'include' });
+      const tokens = await r.json();
+      const el = document.getElementById('tokenList');
+      el.innerHTML = tokens.map(t => {
+        const esc = (s) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+        return `<li>
+          <code title="${esc(t.token)}">${esc(t.token)}</code>
+          <button onclick="revokeToken(this.dataset.token)" data-token="${esc(t.token)}" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Revoke</button>
+        </li>`;
+      }).join('') || '<li><em>No tokens</em></li>';
+    }
+
+    async function issueToken() {
+      const r = await fetch(API + '/admin/tokens', { method: 'POST', credentials: 'include' });
+      const d = await r.json();
+      const el = document.getElementById('newToken');
+      el.textContent = 'New token: ' + d.token;
+      el.classList.remove('hidden');
+      loadTokens();
+    }
+
+    async function revokeToken(token) {
+      if (!confirm('Revoke this token? It will stop working immediately.')) return;
+      await fetch(API + '/admin/tokens/' + encodeURIComponent(token), { method: 'DELETE', credentials: 'include' });
+      loadTokens();
+      document.getElementById('newToken').classList.add('hidden');
+    }
+
+    async function saveSettings() {
+      const maxRes = parseInt(document.getElementById('maxRes').value, 10);
+      await fetch(API + '/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max_resolution: maxRes }),
+        credentials: 'include'
+      });
+    }
+
+    function updateApiUrls() {
+      const base = location.origin;
+      document.getElementById('apiNext').textContent = base + '/api/photo?token=YOUR_TOKEN&mode=next';
+      document.getElementById('apiRandom').textContent = base + '/api/photo?token=YOUR_TOKEN&mode=random';
+    }
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) doUpload(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) doUpload(fileInput.files);
+      fileInput.value = '';
+    });
+
+    function doUpload(files) {
+      const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (!imageFiles.length) return;
+
+      const queue = document.getElementById('uploadQueue');
+      queue.innerHTML = '';
+      document.getElementById('uploadQueueActions').classList.remove('hidden');
+      const items = new Map();
+
+      imageFiles.forEach((file, i) => {
+        const id = 'up-' + i + '-' + Date.now();
+        const url = URL.createObjectURL(file);
+        const div = document.createElement('div');
+        div.className = 'upload-item';
+        div.id = id;
+        div.innerHTML = `
+          <img class="preview" src="${url}" alt="">
+          <div class="meta">
+            <div class="name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+            <div class="status">Pending</div>
+          </div>
+        `;
+        queue.appendChild(div);
+        items.set(file, { div, url, id });
+      });
+
+      let completed = 0;
+      const total = imageFiles.length;
+
+      function updateItem(file, state, pct, msg) {
+        const { div } = items.get(file);
+        if (!div) return;
+        const bar = div.querySelector('.progress-bar');
+        const status = div.querySelector('.status');
+        bar.style.width = (pct ?? (state === 'done' ? 100 : state === 'error' ? 100 : 0)) + '%';
+        status.textContent = msg ?? (state === 'pending' ? 'Pending' : state === 'uploading' ? 'Uploading...' : state === 'done' ? 'Done' : 'Error');
+        div.classList.remove('done', 'error');
+        if (state === 'done') div.classList.add('done');
+        if (state === 'error') div.classList.add('error');
+      }
+
+      async function uploadOne(file) {
+        const { url } = items.get(file);
+        updateItem(file, 'uploading', 0, 'Uploading...');
+
+        return new Promise((resolve) => {
+          const xhr = new XMLHttpRequest();
+          const fd = new FormData();
+          fd.append('images', file);
+
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const pct = Math.round((e.loaded / e.total) * 100);
+              updateItem(file, 'uploading', pct, pct + '%');
+            }
+          });
+
+          xhr.addEventListener('load', () => {
+            URL.revokeObjectURL(url);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const d = JSON.parse(xhr.responseText);
+              const ok = d.added?.length > 0;
+              updateItem(file, ok ? 'done' : 'error', 100, ok ? 'Done' : (d.errors?.[0]?.error || 'Failed'));
+            } else {
+              updateItem(file, 'error', 100, 'Failed');
+            }
+            completed++;
+            if (completed === total) loadPictures();
+            resolve();
+          });
+
+          xhr.addEventListener('error', () => {
+            URL.revokeObjectURL(url);
+            updateItem(file, 'error', 100, 'Network error');
+            completed++;
+            if (completed === total) loadPictures();
+            resolve();
+          });
+
+          xhr.open('POST', API + '/admin/upload');
+          xhr.withCredentials = true;
+          xhr.send(fd);
+        });
+      }
+
+      const concurrency = UPLOAD_CONCURRENCY;
+      let idx = 0;
+      function next() {
+        while (idx < imageFiles.length) {
+          const i = idx++;
+          uploadOne(imageFiles[i]).then(() => {
+            if (idx < imageFiles.length) next();
+          });
+          if (idx >= concurrency) break;
+        }
+      }
+      next();
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeDetail();
+    });
+
+    document.addEventListener('mousedown', (ev) => {
+      if (!ev.target.closest('.card-check')) return;
+      const card = ev.target.closest('.card');
+      const cb = card?.querySelector('.pic-check');
+      if (!cb) return;
+      const checks = Array.from(document.querySelectorAll('.pic-check'));
+      const idx = checks.indexOf(cb);
+      if (idx < 0) return;
+      if (ev.shiftKey && lastCheckIndex >= 0) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        suppressNextCheckClick = true;
+        const from = Math.min(lastCheckIndex, idx);
+        const to = Math.max(lastCheckIndex, idx);
+        const newState = !cb.checked;
+        for (let i = from; i <= to; i++) checks[i].checked = newState;
+        updateSelectedCount();
+      } else {
+        lastCheckIndex = idx;
+      }
+    }, true);
+
+    document.addEventListener('click', (ev) => {
+      if (!suppressNextCheckClick) return;
+      suppressNextCheckClick = false;
+      if (ev.target.closest('.card-check')) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    }, true);
+
+    document.getElementById('pictureList').addEventListener('change', (ev) => {
+      if (ev.target.matches('.pic-check')) updateSelectedCount();
+    });
+
+    checkAuth();
+  </script>
+</body>
+</html>
