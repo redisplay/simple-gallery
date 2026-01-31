@@ -234,6 +234,10 @@ app.post('/api/admin/upload', requireAuth, upload.array('images', config.maxUplo
       await pipeline.toFile(outPath);
 
       const id = addPicture(filename, exif.date, exif.location);
+      if (exif.date) {
+        const year = exif.date.slice(0, 4);
+        if (/^\d{4}$/.test(year)) setPictureTags(id, [year]);
+      }
       added.push({ id, filename });
     } catch (e) {
       errors.push({ file: file.originalname, error: e.message });
