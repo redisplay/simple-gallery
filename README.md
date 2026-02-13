@@ -2,6 +2,23 @@
 
 Photo gallery server with EXIF extraction, tags, and token-based API.
 
+## Multi-User Support
+
+The server supports creating unlimited separate galleries dynamically. 
+
+- **Default Gallery:** Accessible at `http://localhost:3456/`
+- **User Galleries:** Create a new gallery by visiting `http://localhost:3456/<username>/`
+
+Each user gallery has its own:
+- Database (`data/<username>/gallery.db`)
+- Image storage (`data/<username>/images`)
+- Settings & Tokens
+- Admin Password
+
+**Passwords:**
+- Initially, all galleries use the global password defined in `RD_SIMPLE_GALLERY_PASSWORD` (default: `changeme`).
+- You can set a unique, salted & hashed password for each gallery in the **Settings** tab.
+
 ## Environment variables
 
 All configuration can be overridden via environment variables. Array values use comma-separated lists.

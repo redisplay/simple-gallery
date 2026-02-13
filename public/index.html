@@ -123,6 +123,10 @@
       <div id="newToken" class="api-url hidden" style="margin-top: 0.5rem;"></div>
       <p style="margin-top: 1rem;"><strong>Active tokens:</strong></p>
       <ul id="tokenList" class="token-list"></ul>
+
+      <h3 style="margin-top: 1.5rem;">Admin Password</h3>
+      <label>New Password: <input type="password" id="newPassword" placeholder="New Password"></label>
+      <button onclick="changePassword()">Update Password</button>
     </div>
 
     <div id="detailModal" class="modal-overlay hidden" onclick="if(event.target===this) closeDetail()">
@@ -159,7 +163,7 @@
 
   <script>
     // Hardcoded: API base path, pagination limit, upload concurrency, max resolution range
-    const API = '/api';
+    const API = 'api';
     const PAGINATION_LIMIT = 24;
     const UPLOAD_CONCURRENCY = 3;
     const MAX_RES_MIN = 100;
@@ -167,7 +171,8 @@
     const MAX_RES_DEFAULT = 1920;
 
     async function checkAuth() {
-      const r = await fetch(API + '/check');
+      // Check auth relative to current location
+      const r = await fetch('api/check');
       const d = await r.json();
       if (d.authenticated) {
         document.getElementById('login').classList.add('hidden');
@@ -181,7 +186,9 @@
     async function login() {
       const pw = document.getElementById('password').value;
       const err = document.getElementById('loginError');
-      const r = await fetch(API + '/login', {
+      // Construct login URL relative to current location
+      const loginUrl = 'api/login'; 
+      const r = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pw }),
@@ -198,7 +205,7 @@
     }
 
     async function logout() {
-      await fetch(API + '/logout', { method: 'POST', credentials: 'include' });
+      await fetch('api/logout', { method: 'POST', credentials: 'include' });
       document.getElementById('login').classList.remove('hidden');
       document.getElementById('app').classList.add('hidden');
     }
@@ -416,6 +423,29 @@
       await fetch(API + '/admin/tokens/' + encodeURIComponent(token), { method: 'DELETE', credentials: 'include' });
       loadTokens();
       document.getElementById('newToken').classList.add('hidden');
+    }
+
+
+    async function changePassword() {
+      const pw = document.getElementById('newPassword').value;
+      if (!pw) {
+        alert('Please enter a new password');
+        return;
+      }
+      if (!confirm('Are you sure you want to change the admin password for this gallery?')) return;
+      const r = await fetch(API + '/admin/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+        credentials: 'include'
+      });
+      if (r.ok) {
+        alert('Password updated. You may need to login again.');
+        document.getElementById('newPassword').value = '';
+      } else {
+        const d = await r.json();
+        alert('Error: ' + (d.error || 'Unknown error'));
+      }
     }
 
     async function saveSettings() {
